@@ -5,7 +5,7 @@ import datetime
 def get_metadata( filename, ):
   exifdata = exiftool( filename )
   for key, value in exifdata.items(): 
-    logging.debug( "  %20s: %s" % ( key, value, ) )
+    logging.log( 5, "  %20s: %s" % ( key, value, ) )
   metadata = {}
   for key in [ "Create Date", ]:
     if key in exifdata:

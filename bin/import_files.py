@@ -1,9 +1,10 @@
 import argparse
 import logging
-import exifread
 import os 
 import glob 
-from datetime import datetime
+import datetime 
+
+from import_media.exiftool import get_metadata
 
 desc = """ Import files to directory structure
 """
@@ -11,8 +12,10 @@ desc = """ Import files to directory structure
 if __name__ == "__main__":
   parser = argparse.ArgumentParser( description = desc )
   parser.add_argument( "filenames", nargs = "+", help = "Source folders or filenames" )
-  parser.add_argument( "--dst", "-s", default = "/Users/aravind/Lightroom/Photos", help = "Destination folder" )
+  parser.add_argument( "--dst_photos", "-dp", default = "/Users/aravind/Lightroom/Photos", help = "Destination folder for photos" )
+  parser.add_argument( "--dst_videos", "-dv", default = "/Users/aravind/Lightroom/Videos", help = "Destination folder for videos" )
   parser.add_argument( "--number", "-n", type = int, default = 0, help = "Number of files to process" )
+  parser.add_argument( "--video", action = "store_true", help = "Target is a video" )
   parser.add_argument( "--move", "-m", action = "store_true", help = "Move selected files to folder" )
   parser.add_argument( "--verbosity", "-v", action = "count", default = 0, help = "Verbosity level" )
   parser.add_argument( "--debug", "-d", action = "count", default = 0, help = "Debug level" )
@@ -22,12 +25,16 @@ if __name__ == "__main__":
   console_level = logging.WARN if args.verbosity == 0 else logging.INFO if args.verbosity == 1 else logging.DEBUG
   logging.basicConfig( level = console_level, format = '[%(levelname)s] %(message)s' )
 
-  dst = args.dst
+  dst = args.dst_videos if args.video else args.dst_photos
   logging.info( "Destination: %s" % dst )
   if not os.path.exists( dst ): 
     logging.fatal( "Destination path %s does not exist" % ( dst, ) )
   elif not os.path.isdir( dst ):
     logging.fatal( "Destination path %s is not a folder" % ( dst, ) )
+
+  extensions_photos =  [ "JPG", "jpg", "JPEG", "jpeg", ]
+  extensions_videos =  [ "MOV", "mov", "MP4", "mp4", ]
+  extensions = extensions_videos if args.video else extension_photos
 
   folders = set()
   moved = 0
@@ -37,18 +44,19 @@ if __name__ == "__main__":
     if os.path.isfile( f ):
       filenames.append( f )
     elif os.path.isdir( f ):
-      for ext in [ "JPG", "jpg", "JPEG", "jpeg", ]:
+      for ext in extensions:
         files = glob.glob( os.path.join( f, "*.%s" % ext ) )
         filenames.extend( files )
     if args.number > 0:
       logging.warning( "Processing %d of %d files" % ( args.number, len( filenames ) ) )
       filenames = filenames[:args.number]
     for f in filenames:
-      with open( f, "rb" ) as handle:
-        tags = exifread.process_file( handle )
-      v = str( tags["EXIF DateTimeOriginal"] )
-      dt = datetime.strptime( v, '%Y:%m:%d %H:%M:%S' )
-      #print( "%s: %s" % ( f, dt ) )
+      try: 
+        metadata = get_metadata( f )
+        dt = metadata["Create Date"]
+      except: 
+        logging.warning( "Failed to get metdata for %s" % ( f, ) )
+        continue
       folder = os.path.join( dst, dt.strftime( "%Y" ), dt.strftime( "%Y-%m" ) ) 
       if folder not in folders: 
         logging.info( "New folder: %s" % ( folder, ) )
