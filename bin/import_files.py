@@ -16,6 +16,7 @@ if __name__ == "__main__":
   parser.add_argument( "--dst_videos", "-dv", default = "/Users/aravind/Lightroom/Videos", help = "Destination folder for videos" )
   parser.add_argument( "--number", "-n", type = int, default = 0, help = "Number of files to process" )
   parser.add_argument( "--video", action = "store_true", help = "Target is a video" )
+  parser.add_argument( "--no-prefix", "-np", action = "store_true", help = "Do not attach prefix to files" )
   parser.add_argument( "--move", "-m", action = "store_true", help = "Move selected files to folder" )
   parser.add_argument( "--verbosity", "-v", action = "count", default = 0, help = "Verbosity level" )
   parser.add_argument( "--debug", "-d", action = "count", default = 0, help = "Debug level" )
@@ -34,7 +35,7 @@ if __name__ == "__main__":
 
   extensions_photos =  [ "JPG", "jpg", "JPEG", "jpeg", ]
   extensions_videos =  [ "MOV", "mov", "MP4", "mp4", ]
-  extensions = extensions_videos if args.video else extension_photos
+  extensions = extensions_videos if args.video else extensions_photos
 
   folders = set()
   moved = 0
@@ -64,10 +65,11 @@ if __name__ == "__main__":
       if not os.path.exists( folder ): 
         logging.info( "Creating folder: %s" % ( folder, ) )
         os.makedirs( folder )
-      prefix = dt.strftime( "%Y%m%d" )
       basename = os.path.basename( f )
-      if not basename.startswith( prefix ):
-        basename = "%s-%s" % ( prefix, basename )
+      if not args.no_prefix:
+        prefix = dt.strftime( "%Y%m%d" )
+        if not basename.startswith( prefix ):
+          basename = "%s-%s" % ( prefix, basename )
       f2 = os.path.join( folder, basename )
       if args.move:
         if not os.path.exists( f2 ):

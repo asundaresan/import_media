@@ -3,17 +3,32 @@ import logging
 import datetime
 
 def get_metadata( filename, ):
+  """ Return basic meta-data for file 
+  Args: 
+    filename (str): File name of media (JPG, MOV, MP4)
+  Returns 
+    dict: with keys "Create Date" and optional: 
+  """
   exifdata = exiftool( filename )
   for key, value in exifdata.items(): 
     logging.log( 5, "  %20s: %s" % ( key, value, ) )
   metadata = {}
   for key in [ "Create Date", ]:
     if key in exifdata:
-      metadata[key] = datetime.datetime.strptime( exifdata[key], '%Y:%m:%d %H:%M:%S' )
+      for fmt in [ '%Y:%m:%d %H:%M:%S.%f', '%Y:%m:%d %H:%M:%S', ]:
+        try:
+          metadata[key] = datetime.datetime.strptime( exifdata[key], fmt )
+          break
+        except ValueError as e:
+          logging.debug( "Unable to parse date '%s' with format '%s'" % ( exifdata[key], fmt ) )
+          pass
+      else:
+        logging.error( "Unable to parse date '%s'" % ( exifdata[key] ) )
   for key in [ "Make", "Model", ]:
     if key in exifdata:
       metadata[key] = exifdata[key]
   return metadata
+
 
 def exiftool( filename, options = [], debug = 0 ):
   """ Call exiftool and parse the output to return a dict
