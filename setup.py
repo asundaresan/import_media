@@ -17,6 +17,7 @@ setup(name='import_media',
       zip_safe=False,
       install_requires = [
           "exifread",
+          "tqdm",
         ]
       )
 
