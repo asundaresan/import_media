@@ -4,6 +4,8 @@ import os
 import glob 
 import datetime 
 
+import tqdm 
+
 from import_media.exiftool import get_metadata
 
 desc = """Import image and video files to directory structure.
@@ -11,7 +13,7 @@ desc = """Import image and video files to directory structure.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("filenames", nargs="+", help="Source folders or filenames")
+    parser.add_argument("filepaths", nargs="+", help="Source folders or filenames")
     parser.add_argument("--dst_photos", "-dp", default="/Users/aravind/Lightroom/Photos", help="Destination folder for photos")
     parser.add_argument("--dst_videos", "-dv", default="/Users/aravind/Lightroom/Videos", help="Destination folder for videos")
     parser.add_argument("--number", "-n", type=int, default=0, help="Number of files to process")
@@ -37,50 +39,50 @@ if __name__ == "__main__":
     extensions_videos =  ["MOV", "mov", "MP4", "mp4",]
     extensions = extensions_videos if args.video else extensions_photos
 
+    for filepath in args.filepaths:
+        if os.path.isfile(filepath):
+            filenames.append(filepath)
+        elif os.path.isdir(filepath):
+            for ext in extensions:
+              files = glob.glob(os.path.join(filepath, f"*.{ext}"))
+              filenames.extend(files)
+    if args.number > 0:
+        logging.warning(f"Processing only {args.number} of {len(filenames)} files")
+        filenames = filenames[:args.number]
     folders = set()
     moved = 0
-    total = 0
-    for f in args.filenames:
-        filenames = []
-        if os.path.isfile(f):
-            filenames.append(f)
-        elif os.path.isdir(f):
-            for ext in extensions:
-              files = glob.glob(os.path.join(f, "*.%s" % ext))
-              filenames.extend(files)
-        if args.number > 0:
-            logging.warning("Processing %d of %d files" % (args.number, len(filenames)))
-            filenames = filenames[:args.number]
-        for f in filenames:
-            try: 
-                metadata = get_metadata(f)
-                dt = metadata["Create Date"]
-            except: 
-                logging.warning("Failed to get metdata for %s" % (f,))
-                continue
-            folder = os.path.join(dst, dt.strftime("%Y"), dt.strftime("%Y-%m")) 
-            if folder not in folders: 
-                logging.info("New folder: %s" % (folder,))
-                folders.add(folder)
-            if not os.path.exists(folder): 
-                logging.info("Creating folder: %s" % (folder,))
-                os.makedirs(folder)
-            basename = os.path.basename(f)
-            if not args.no_prefix:
-                prefix = dt.strftime("%Y%m%d")
-                if not basename.startswith(prefix):
-                    basename = "%s-%s" % (prefix, basename)
-            f2 = os.path.join(folder, basename)
-            if args.move:
-                if not os.path.exists(f2):
-                    logging.debug("moving %s to %s" % (f, f2))
-                    os.rename(f, f2)
-                    moved += 1
-                else:
-                  logging.warning("File exists at destination: %s" % f2)
+    total = len(filenames)
+    filenames = []
+    print(f"processing {total} files, move={args.move}")
+    for f in tqdm.tqdm(filenames, desc="Processing"):
+        try: 
+            metadata = get_metadata(f)
+            dt = metadata["Create Date"]
+        except: 
+            logging.warning("Failed to get metdata for %s" % (f,))
+            continue
+        folder = os.path.join(dst, dt.strftime("%Y"), dt.strftime("%Y-%m")) 
+        if folder not in folders: 
+            logging.info("New folder: %s" % (folder,))
+            folders.add(folder)
+        if not os.path.exists(folder): 
+            logging.info("Creating folder: %s" % (folder,))
+            os.makedirs(folder)
+        basename = os.path.basename(f)
+        if not args.no_prefix:
+            prefix = dt.strftime("%Y%m%d")
+            if not basename.startswith(prefix):
+                basename = "%s-%s" % (prefix, basename)
+        f2 = os.path.join(folder, basename)
+        if args.move:
+            if not os.path.exists(f2):
+                logging.debug("moving %s to %s" % (f, f2))
+                os.rename(f, f2)
+                moved += 1
             else:
-                logging.debug("todo: %s to %s" % (f, f2))
-        total += len(filenames)
-    logging.warning("Moved %d files / %d to %d folders" % (moved, total, len(folders),))
+              logging.warning("File exists at destination: %s" % f2)
+        else:
+            logging.debug("todo: %s to %s" % (f, f2))
+    print("moved %d files / %d to %d folders" % (moved, total, len(folders),))
 
 
