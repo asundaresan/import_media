@@ -11,12 +11,12 @@ setup(name='import_media',
       license='GPLv3',
       packages=find_packages(),
       scripts=[
-        "bin/import_files.py",
-        "bin/get_metadata.py",
+          "bin/import_files.py",
+          "bin/get_metadata.py",
         ],
       zip_safe=False,
       install_requires = [
-          "exifread"
+          "exifread",
         ]
       )
 
