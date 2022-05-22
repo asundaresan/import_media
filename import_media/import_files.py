@@ -34,7 +34,7 @@ Use the -m option to actually move the files.
 
 def main():
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("filenames", nargs="+", help="Source folders or filenames")
+    parser.add_argument("filepaths", nargs="+", help="Source folders or filenames")
     parser.add_argument("--dst_photos", "-dp", default="/Users/aravind/Lightroom/Photos", help="Destination folder for photos")
     parser.add_argument("--dst_videos", "-dv", default="/Users/aravind/Lightroom/Videos", help="Destination folder for videos")
     parser.add_argument("--number", "-n", type=int, default=0, help="Number of files to process")
@@ -59,7 +59,7 @@ def main():
     extensions_photos =  ["JPG", "jpg", "JPEG", "jpeg",]
     extensions_videos =  ["MOV", "mov", "MP4", "mp4",]
     extensions = extensions_videos if args.video else extensions_photos
-    filenames = get_filenames(args.filenames, extensions=extensions)
+    filenames = get_filenames(args.filepaths, extensions=extensions)
     total = len(filenames)
     if args.number > 0:
         print(f"Processing {args.number} of {total} files")
@@ -69,7 +69,7 @@ def main():
     moved = 0
     will_move = 0
     num_exists = 0
-    for f in tqdm.tqdm(filenames, desc="importing"):
+    for f in tqdm.tqdm(filenames, desc="Importing"):
         try: 
             metadata = get_metadata(f)
             dt = metadata["Create Date"]
